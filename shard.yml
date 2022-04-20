@@ -1,0 +1,17 @@
+name: wd-mycloud-restsdk-recovery-cr
+version: 0.1.0
+
+authors:
+  - Taddäus Nauheimer <nauheimer.t@protonmail.com>
+
+targets:
+  wd-mycloud-restsdk-recovery-cr:
+    main: src/wd-mycloud-restsdk-recovery-cr.cr
+
+crystal: 1.4.0
+
+license: MIT
+
+dependencies:
+  sqlite3:
+    github: crystal-lang/crystal-sqlite3
