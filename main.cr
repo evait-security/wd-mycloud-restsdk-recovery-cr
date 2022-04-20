@@ -7,7 +7,6 @@ require "io"
 
 ERROR="[-] ERROR: "
 
-#action=""
 database_index=""
 backup_db=""
 files_dir=""
@@ -16,6 +15,7 @@ action=""
 
 OptionParser.parse do |parser|
 	parser.banner = "WD MyCloud rest-sdk recovery"
+	
 	parser.on("-d DATABASE", "--database=DATABASE", "Path to the index.db file") {|_DATABASE| database_index = _DATABASE }
 	parser.on("-b BACKUP", "--backup=BACKUP", "Path to the recovered.db file") {|_BACKUP| backup_db = _BACKUP }
 	parser.on("-f FILES_DIR", "--files=FILES_DIR", "Path to the directory containing the unorganized files") {|_FILES_DIR| files_dir = _FILES_DIR }
@@ -36,7 +36,7 @@ end
 case action
 when "restore" 
 	restore(database_index, output_dir)
-	exit
+	exit 0
 else 
 	puts "Trying to restore the contents"
 end 
@@ -58,10 +58,7 @@ if files_dir.empty?
 	error = true
 end
 
-if error 
-	exit
-end
-
+exit 1 if error
 
 begin 
 	DB.open "sqlite3://#{database_index}" do |db|
@@ -97,7 +94,6 @@ def restore(db_path, output_file)
 		# IMMENSLY HIGH DANGER FOR INJECTIONS, ONLY INTENDED FOR PRIVATE USE
 		`sqlite3 #{db_path} ".recover" 2>/dev/zero | sqlite3 #{output_file} 2>/dev/zero`
 	rescue e
-		puts e
 		STDERR.puts "#{ERROR} There was a problem recovering the database."
 		exit 1
 	end
