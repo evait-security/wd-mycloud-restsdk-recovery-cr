@@ -1,6 +1,9 @@
 require "option_parser"
 require "sqlite3"
 require "db"
+require "kernel"
+require "file"
+require "io"
 
 ERROR="[-] ERROR: "
 
@@ -73,23 +76,30 @@ end
 ############ Functions
 
 # Tries to restore the given database
-def restore(db_path, output)
+def restore(db_path, output_file)
 
 	puts "Trying to restore the database file located at: #{db_path}"
-	if output.empty?
+
+	# If no output file given a default one will be selcted
+	if output_file.empty?
 		puts "No output parameter given, using __restored.db"
-		output = "__restored.db"
+		output_file = "__restored.db"
 	else 
-		puts "Output file: #{output}"
+		puts "Output file: #{output_file}"
+	end
+	
+	if File.exists?(output_file)
+		STDERR.puts "#{ERROR} File #{output_file} does already exist"
+		exit 1
 	end
 
 	begin 			
-
-		DB.open "sqlite3://#{db_path}" do |db|
-				puts "Connected"
-		rescue e
-		puts e	
-		exit
+		# IMMENSLY HIGH DANGER FOR INJECTIONS, ONLY INTENDED FOR PRIVATE USE
+		`sqlite3 #{db_path} ".recover" 2>/dev/zero | sqlite3 #{output_file} 2>/dev/zero`
+	rescue e
+		puts e
+		STDERR.puts "#{ERROR} There was a problem recovering the database."
+		exit 1
 	end
 end
-end
+
