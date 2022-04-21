@@ -15,6 +15,11 @@ output_dir = ""
 
 action = ""
 
+##### Statistics #####
+files_found = 0
+root_folders = 0 
+
+
 OptionParser.parse do |parser|
 	parser.banner = "WD MyCloud rest-sdk recovery"
 
@@ -34,13 +39,11 @@ OptionParser.parse do |parser|
 	end
 end
 
-case action
-when "restore" 
+
+if action == "restore"
 	restore(database_index, output_dir)
 	exit 0
-else 
-	rebuild_dirstructure(database_index, files_dir, output_dir)	
-end 
+end
 
 
 error=false
@@ -65,6 +68,44 @@ rescue e
 	if e.message.as(String).includes?("malformed")
 		STDERR.puts "#{ERROR} The Database seems malformed, you can try to restore it with this program. Check out -h,--help for more information"
 	end
+end
+
+
+
+p! database_index
+p! files_dir
+p! output_dir
+
+puts "#{INFO} Starting recovery process"
+puts "#{INFO} Opening database:\t #{database_index}"
+puts "#{INFO} Files directory path:\t #{files_dir}"
+puts "#{INFO} Output directory:\t #{output_dir}"
+
+
+# Get all file entries where the parentID is set (if no parentID is present its a directory in root)
+database = DB.open "sqlite3://#{database_index}"
+files_structure = [] of FileClass
+begin
+	db_output = database.query("SELECT id, name, parentID, mimeType, contentID FROM files WHERE parentID not NULL")
+	db_output.each do
+		id, name, parentID, mimeType, contentID = db_output.read(String, String, String, String, String)
+		files_structure.push(FileClass.new(id, name, parentID, mimeType, contentID))
+		files_found += 1
+	end
+rescue e
+	puts "#{ERROR} Database could not be queried: #{e}"	
+end
+
+# Get all files entries where parentID is NOT set
+begin
+	db_output = database.query("SELECT id, name, mimeType FROM files WHERE parentID is NULL")
+	db_output.each do
+		id, name, mimeType = db_output.read(String, String, String)
+		files_structure.push(FileClass.new(id, name, mimeType))
+		root_folders += 1
+	end
+rescue e
+	puts "#{ERROR} Database could not be queried: #{e}"	
 end
 
 ############ Functions
@@ -96,43 +137,7 @@ def restore(db_path, output_file)
 	end
 end
 
-def rebuild_dirstructure(db_path, files_path, output_path)
 
-	p! db_path
-	p! files_path
-	p! output_path 
-
-	puts "#{INFO} Starting recovery process"
-	puts "#{INFO} Opening database:\t #{db_path}"
-	puts "#{INFO} Files directory path:\t #{files_path}"
-	puts "#{INFO} Output directory:\t #{output_path}"
-
-
-	# Get all file entries where the parentID is set (if no parentID is present its a directory in root)
-	database = DB.open "sqlite3://#{db_path}"
-	files_structure = [] of FileClass
-	begin
-		db_output = database.query("SELECT id, name, parentID, mimeType, contentID FROM files WHERE parentID not NULL")
-		db_output.each do
-			id, name, parentID, mimeType, contentID = db_output.read(String, String, String, String, String)
-			files_structure.push(FileClass.new(id, name, parentID, mimeType, contentID))
-		end
-	rescue e
-		puts "#{ERROR} Database could not be queried: #{e}"	
-	end
-
-	# Get all files entries where parentID is NOT set
-	begin
-		db_output = database.query("SELECT id, name, mimeType FROM files WHERE parentID is NULL")
-		db_output.each do
-			id, name, mimeType = db_output.read(String, String, String)
-			files_structure.push(FileClass.new(id, name, mimeType))
-		end
-	rescue e
-		puts "#{ERROR} Database could not be queried: #{e}"	
-	end
-
-end
 
 class FileClass
 
