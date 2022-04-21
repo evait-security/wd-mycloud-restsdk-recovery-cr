@@ -5,19 +5,20 @@ require "kernel"
 require "file"
 require "io"
 
-ERROR="[-] ERROR: "
+ERROR = "[-] ERROR:"
+INFO = "[i] Info:"
 
-database_index=""
-backup_db=""
-files_dir=""
-output_dir=""
-action=""
+database_index = ""
+backup_db = ""
+files_dir = ""
+output_dir = ""
+
+action = ""
 
 OptionParser.parse do |parser|
 	parser.banner = "WD MyCloud rest-sdk recovery"
-	
+
 	parser.on("-d DATABASE", "--database=DATABASE", "Path to the index.db file") {|_DATABASE| database_index = _DATABASE }
-	parser.on("-b BACKUP", "--backup=BACKUP", "Path to the recovered.db file") {|_BACKUP| backup_db = _BACKUP }
 	parser.on("-f FILES_DIR", "--files=FILES_DIR", "Path to the directory containing the unorganized files") {|_FILES_DIR| files_dir = _FILES_DIR }
 	parser.on("-o OUT_DIR", "--output=OUT_DIR", "(optional) Path to the directory where the directory structure should be created ") {|_OUT_DIR| output_dir = _OUT_DIR }
 	parser.on("-r", "--restore", "Tries to restore the given database, uses -o for output(dir|name)") {action = "restore"}
@@ -38,7 +39,7 @@ when "restore"
 	restore(database_index, output_dir)
 	exit 0
 else 
-	puts "Trying to restore the contents"
+	rebuild_dirstructure(database_index, files_dir, output_dir)	
 end 
 
 
@@ -48,10 +49,6 @@ if database_index.empty?
 	error = true
 end
 
-if backup_db.empty?
-	STDERR.puts "#{ERROR} Path to backup database missing (try -h for help)"
-	error = true
-end
 
 if files_dir.empty?
 	STDERR.puts "#{ERROR} Path to files direcotry missing (try -h for help)"
@@ -84,7 +81,7 @@ def restore(db_path, output_file)
 	else 
 		puts "Output file: #{output_file}"
 	end
-	
+
 	if File.exists?(output_file)
 		STDERR.puts "#{ERROR} File #{output_file} does already exist"
 		exit 1
@@ -99,3 +96,51 @@ def restore(db_path, output_file)
 	end
 end
 
+def rebuild_dirstructure(db_path, files_path, output_path)
+
+	p! db_path
+	p! files_path
+	p! output_path 
+
+	puts "#{INFO} Starting recovery process"
+	puts "#{INFO} Opening database:\t #{db_path}"
+	puts "#{INFO} Files directory path:\t #{files_path}"
+	puts "#{INFO} Output directory:\t #{output_path}"
+
+
+	# Get all file entries where the parentID is set (if no parentID is present its a directory in root)
+	database = DB.open "sqlite3://#{db_path}"
+	files_structure = [] of FileClass
+	begin
+		db_output = database.query("SELECT id, name, parentID, mimeType, contentID FROM files WHERE parentID not NULL")
+		db_output.each do
+			id, name, parentID, mimeType, contentID = db_output.read(String, String, String, String, String)
+			files_structure.push(FileClass.new(id, name, parentID, mimeType, contentID))
+		end
+	rescue e
+		puts "#{ERROR} Database could not be queried: #{e}"	
+	end
+
+	# Get all files entries where parentID is NOT set
+	begin
+		db_output = database.query("SELECT id, name, mimeType FROM files WHERE parentID is NULL")
+		db_output.each do
+			id, name, mimeType = db_output.read(String, String, String)
+			files_structure.push(FileClass.new(id, name, mimeType))
+		end
+	rescue e
+		puts "#{ERROR} Database could not be queried: #{e}"	
+	end
+
+end
+
+class FileClass
+
+	def initialize(@id : String, @name : String, @mimeType : String, @parentID : String, @contentID : String)
+	end
+
+	def initialize(@id : String, @name : String, @mimeType : String)
+		@parentID = nil
+		@contentID = nil
+	end
+end
