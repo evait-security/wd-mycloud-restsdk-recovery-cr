@@ -101,6 +101,17 @@ module Recoverer
 		root_node = Node.new(FileClass.new(), [] of Node)
 		root_node = tree_insert(folders, root_node)
 		root_node = tree_insert(files, root_node)
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		root_node.clean_dirs()
+		#root_node.clean_dirs()
+		root_node.print(0)
 
 	end
 

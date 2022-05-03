@@ -18,7 +18,7 @@ class FileClass
 	def initialize()
 		@id = nil
 		@name = nil 
-		@mimeType = nil
+		@mimeType = "application/x.wd.dir"
 		@contentID = nil
 		@parentID = nil
 	end
