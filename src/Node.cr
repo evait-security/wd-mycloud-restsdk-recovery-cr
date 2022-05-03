@@ -2,35 +2,34 @@ require "./FileClass"
 
 class Node
 
-	property name 
-	property isDir
-	property links
 	property file 
+	property links
 
-	def initialize(@name : String, isDir : Bool)
+	def initialize(@file : FileClass)
 		@links = [] of Node
 	end
 
-	def initialize(@name : String, isDir : Bool, links : Array)
+	def initialize(@file : FileClass, links : Array)
 		@links = [] of Node
 	end
 	
 	def insert(file : FileClass)
-		if file.parentFolderName == name
-			@file = file	
+		if file.parentID == @file.id
+			@links.push(Node.new(file))
 			return true
 		elsif links.empty?
 			return false
 		else 
 			links.each do |link|
-				return link.insert(file)
+				return true if link.insert(file)
 			end
+			return false
 		end
 	end
 
 
 	def search(name : String) : String
-		if @name == name
+		if @file.name == name
 			return @name
 		else 
 			links.each do |link|
