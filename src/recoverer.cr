@@ -90,23 +90,6 @@ module Recoverer
 		end
 
 
-		files_structure.each do |file_orig| files_structure.each do |file_copy|
-				if file_orig.parentID == file_copy.id
-					file_orig.parentFolderName = file_copy.name
-					break
-				end
-			end
-		end
-
-		files_orig_size = files_structure.size
-		while (files_orig_size - folder_count) <= files_structure.size
-			files_structure.each do |file|
-				if root_node.insert(file)
-					files_structure.reject(file)
-				end
-			end
-		end
-
 	end
 
 
@@ -140,6 +123,8 @@ module Recoverer
 			raise e
 		end 
 		puts "[i] Found #{files_structure.size} database entries" unless quite
+
+		root_node = buildTree(files_structure)
 
 	end
 
