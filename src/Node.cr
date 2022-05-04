@@ -55,6 +55,7 @@ class Node
 				delete_list.each do |delete|
 					@links.delete(delete)
 				end
+				return true if @links.empty?
 			end
 		end
 	end
