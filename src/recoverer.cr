@@ -1,3 +1,5 @@
+require "dir"
+
 module Recoverer
 	extend self
 
@@ -10,10 +12,14 @@ module Recoverer
 		end
 
 		if files_dir.empty?
-			error = "Path to files direcotry missing (try -h for help)"
+			error = "Path to files directory missing (try -h for help)"
 		end
 
-		raise Exception.new(error) if error
+		if Dir.empty?(files_dir)
+			error = "#{files_dir} is empty"
+		end
+
+		raise Exception.new(error) unless error.empty?
 		return true
 	end
 
@@ -78,39 +84,74 @@ module Recoverer
 	end
 
 
-	def buildTree(file_structure : Array)
-
-		root_node = Node.new("_ROOT_", true, [] of Node)
-
-		# Get list of uniq files
-		files_structure.each do |file|
-			if file.parentID == nil && file.mimeType == "application/x.wd.dir"
-				root_node.links.push(Node.new(file.name, true))	
-			end
-		end
-
-
-		files_structure.each do |file_orig| files_structure.each do |file_copy|
-				if file_orig.parentID == file_copy.id
-					file_orig.parentFolderName = file_copy.name
-					break
+	def buildTree(file_structure : Array, files_dir : String, output_dir : String)
+	
+		real_file_names = Dir.entries(files_dir)
+		folders = [] of FileClass
+		files = [] of FileClass
+		file_structure.each do |file|
+			if file.mimeType == "application/x.wd.dir"
+				folders.push(file)
+			else
+				real_file_names.each do |name|
+					if name == file.contentID
+						files.push(file)
+					end
 				end
 			end
 		end
 
-		files_orig_size = files_structure.size
-		while (files_orig_size - folder_count) <= files_structure.size
-			files_structure.each do |file|
+		root_node = Node.new(FileClass.new(output_dir), [] of Node)
+		root_node = tree_insert(folders, root_node)
+		root_node = tree_insert(files, root_node)
+		root_node.clean_dirs()
+
+		return root_node
+	end
+
+	# Inserts a list of <FileClass> into the <Node>
+	def tree_insert(file_structure : Array, root_node : Node)
+
+		total_count = file_structure.size	
+
+		# Find root nodes
+		file_structure.each_with_index do |file, i|
+			if file.parentID == nil
+				root_node.links.push(Node.new(file))	
+			end
+		end
+
+		# Delete nodes
+		root_node.links.each do |node|
+			file_structure.delete(node.file)
+		end
+
+		found_count = 0
+		del_list = [] of FileClass
+
+		while true
+			last_count = 0
+
+			file_structure.each do |file|
 				if root_node.insert(file)
-					files_structure.reject(file)
+					found_count += 1
+					del_list.push(file)	
 				end
 			end
+
+			# End if no new files have been found
+			break if del_list.empty?
+			del_list.each do |del_file|
+				file_structure.delete(del_file)
+			end
+			del_list.clear
 		end
 
+		return root_node
 	end
 
 
-	# Tries to rebuild file Structure
+	# Tries to rebuild file structure
 	# raises Exception
 	def recoverDB(database_index : String , files_dir : String, output_dir : String, quite : Bool)
 
@@ -127,11 +168,6 @@ module Recoverer
 			output_dir = "__out" 
 		end
 
-		begin 
-			createOutDir(output_dir)
-		rescue e
-			raise e
-		end 
 		puts "[i] Output directory:\t #{output_dir}" unless quite
 
 		begin 
@@ -140,6 +176,9 @@ module Recoverer
 			raise e
 		end 
 		puts "[i] Found #{files_structure.size} database entries" unless quite
+
+		root_node = buildTree(files_structure, files_dir, output_dir)
+		root_node.create_dirs("", files_dir)
 
 	end
 
