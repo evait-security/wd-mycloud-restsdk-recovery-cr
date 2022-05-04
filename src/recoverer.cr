@@ -178,9 +178,7 @@ module Recoverer
 		puts "[i] Found #{files_structure.size} database entries" unless quite
 
 		root_node = buildTree(files_structure, files_dir, output_dir)
-		root_node.print(0)
 		root_node.create_dirs("", files_dir)
-
 
 	end
 
