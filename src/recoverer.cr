@@ -101,7 +101,6 @@ module Recoverer
 			end
 		end
 
-		
 		root_node = Node.new(FileClass.new(output_dir), [] of Node)
 		root_node = tree_insert(folders, root_node)
 		root_node = tree_insert(files, root_node)
@@ -169,11 +168,6 @@ module Recoverer
 			output_dir = "__out" 
 		end
 
-		begin 
-			createOutDir(output_dir)
-		rescue e
-			raise e
-		end 
 		puts "[i] Output directory:\t #{output_dir}" unless quite
 
 		begin 
@@ -185,7 +179,7 @@ module Recoverer
 
 		root_node = buildTree(files_structure, files_dir, output_dir)
 		root_node.print(0)
-		root_node.create_dirs(output_dir, files_dir)
+		root_node.create_dirs("", files_dir)
 
 
 	end

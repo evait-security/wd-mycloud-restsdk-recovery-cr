@@ -91,7 +91,12 @@ class Node
 	
 	def create_dirs(output_dir : String, files_dir : String)
 		if file.mimeType == "application/x.wd.dir"				
-			output_dir = "#{output_dir}/#{file.name}"
+
+			if output_dir.empty?
+				output_dir = file.name
+			else 
+				output_dir = "#{output_dir}/#{@file.name}"
+			end
 			Dir.mkdir(output_dir)
 			@links.each do |link|
 				link.create_dirs(output_dir, files_dir)
