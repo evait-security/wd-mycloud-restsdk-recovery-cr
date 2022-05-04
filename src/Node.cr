@@ -1,4 +1,6 @@
 require "./FileClass"
+require "dir"
+require "file"
 
 class Node
 
@@ -75,7 +77,7 @@ class Node
 	end
 
 
-	def count()
+	def file_count()
 		count = 0 
 		if @links.empty?
 			return 1
@@ -85,6 +87,18 @@ class Node
 			end
 		end
 		return count
+	end
+	
+	def create_dirs(output_dir : String, files_dir : String)
+		if file.mimeType == "application/x.wd.dir"				
+			output_dir = "#{output_dir}/#{file.name}"
+			Dir.mkdir(output_dir)
+			@links.each do |link|
+				link.create_dirs(output_dir, files_dir)
+			end
+		else
+			File.copy("#{files_dir}/#{@file.contentID}", "#{output_dir}/#{file.name}")
+		end
 	end
 
 end 

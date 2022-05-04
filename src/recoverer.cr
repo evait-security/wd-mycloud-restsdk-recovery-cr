@@ -84,7 +84,7 @@ module Recoverer
 	end
 
 
-	def buildTree(file_structure : Array, files_dir : String)
+	def buildTree(file_structure : Array, files_dir : String, output_dir : String)
 	
 		real_file_names = Dir.entries(files_dir)
 		folders = [] of FileClass
@@ -102,15 +102,15 @@ module Recoverer
 		end
 
 		
-		root_node = Node.new(FileClass.new(), [] of Node)
+		root_node = Node.new(FileClass.new(output_dir), [] of Node)
 		root_node = tree_insert(folders, root_node)
 		root_node = tree_insert(files, root_node)
 		root_node.clean_dirs()
-		root_node.print(0)
 
+		return root_node
 	end
 
-
+	# Inserts a list of <FileClass> into the <Node>
 	def tree_insert(file_structure : Array, root_node : Node)
 
 		total_count = file_structure.size	
@@ -151,7 +151,8 @@ module Recoverer
 		return root_node
 	end
 
-	# Tries to rebuild file Structure
+
+	# Tries to rebuild file structure
 	# raises Exception
 	def recoverDB(database_index : String , files_dir : String, output_dir : String, quite : Bool)
 
@@ -182,7 +183,10 @@ module Recoverer
 		end 
 		puts "[i] Found #{files_structure.size} database entries" unless quite
 
-		root_node = buildTree(files_structure, files_dir)
+		root_node = buildTree(files_structure, files_dir, output_dir)
+		root_node.print(0)
+		root_node.create_dirs(output_dir, files_dir)
+
 
 	end
 

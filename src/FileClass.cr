@@ -15,9 +15,8 @@ class FileClass
 		@contentID = nil
 	end
 
-	def initialize()
+	def initialize(@name : String)
 		@id = nil
-		@name = nil 
 		@mimeType = "application/x.wd.dir"
 		@contentID = nil
 		@parentID = nil
