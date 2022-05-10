@@ -10,10 +10,10 @@ The tool is written in crystal lang and will be available using pre compiled bin
 
 ### Building 
 
-shards install
-shards build
+	shards install
+	shards build
 
-	After that the binary will be in the bin/ directory.
+After that the binary will be in the bin/ directory.
 
 	WD MyCloud rest-sdk recovery
 		-d DATABASE, --database=DATABASE Path to the index.db file
