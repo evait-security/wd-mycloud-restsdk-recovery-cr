@@ -7,3 +7,18 @@ There are already exist commercial and open source solutions like "https://githu
 
 ## Usage
 The tool is written in crystal lang and will be available using pre compiled binaries and of cource compiling it directly from source.
+
+### Building 
+
+	shards install
+	shards build
+
+After that the binary will be in the bin/ directory.
+
+	WD MyCloud rest-sdk recovery
+		-d DATABASE, --database=DATABASE Path to the index.db file
+		-f FILES_DIR, --files=FILES_DIR  Path to the directory containing the unorganized files
+		-o OUT_DIR, --output=OUT_DIR     (optional) Path to the directory where the directory structure should be created
+		-r, --restore                    Tries to restore the given database, uses -o for output(dir|name)
+		-q, --quite                      Disables output to the terminal
+		-h, --help                       Show help
