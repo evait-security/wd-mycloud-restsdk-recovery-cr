@@ -3,52 +3,34 @@ require "dir"
 module Recoverer
 	extend self
 
-	# Check if parameters are in place
-	def check_paras(database_index, files_dir)
-		error = "" 
-		
-		if database_index.empty?
-			error = "Path to database missing (try -h for help)"
-		end
-
-		if files_dir.empty?
-			error = "Path to files directory missing (try -h for help)"
-		end
-
-		if Dir.empty?(files_dir)
-			error = "#{files_dir} is empty"
-		end
-
-		raise Exception.new(error) unless error.empty?
-		return true
-	end
-
-
 	# Create output directory
 	def createOutDir(output_dir)
 		if Dir.exists?(output_dir)
-			raise Exception.new("#{output_dir} already exists")
+      puts "[-] #{output_dir} already exists".colorize.red
+      exit(1)
 		else
 			begin 
 				Dir.mkdir_p(output_dir)
 			rescue e 
-				raise Exception.new("Error creating #{output_dir}")
+		    puts "[-] Error creating #{output_dir}".colorize.red
+        exit(1)
 			end
 		end
 	end
 
-
 	# Test if database is accessable
-	def checkDB(database_path)
+	def checkDB(database_index)
 		begin 
 			DB.open "sqlite3://#{database_index}" do |db|
-					db.query "SELECT id FROM files;"
+					db.query "SELECT id FROM files LIMIT 1;"
 			end
 		rescue e 
 			if e.message.as(String).includes?("malformed")
-				raise Exception.new("The Database seems malformed, you can try to restore it with this program. Check out -h,--help for more information")
+        puts "[-] The Database seems malformed, you can try to restore it with this program. Check out -h, --help for more information".colorize.red
+        exit(1)
 			else 
-				raise e
+        puts "[-] Error while opening the database: #{e}".colorize.red
+        exit(1)
 			end
 		end
 	end
@@ -66,7 +48,8 @@ module Recoverer
 				files_structure.push(FileClass.new(id, name, parentID, mimeType, contentID))
 			end
 		rescue e
-			raise Exception.new("Error reading database")
+      puts "[-] #{e}".colorize.red
+      exit(1)
 		end
 
 		# Get all files entries where parentID is NOT set
@@ -77,7 +60,8 @@ module Recoverer
 				files_structure.push(FileClass.new(id, name, mimeType))
 			end
 		rescue e
-			raise Exception.new("Error reading database")
+      puts "[-] Error reading the database: #{e}".colorize.red
+      exit(1)
 		end
 
 		return files_structure
@@ -85,8 +69,8 @@ module Recoverer
 
 
 	def buildTree(file_structure : Array, files_dir : String, output_dir : String)
-	
-		real_file_names = Dir.entries(files_dir)
+
+		real_file_names = Dir.glob("#{files_dir}/**/*")
 		folders = [] of FileClass
 		files = [] of FileClass
 		file_structure.each do |file|
@@ -155,27 +139,21 @@ module Recoverer
 	# raises Exception
 	def recoverDB(database_index : String , files_dir : String, output_dir : String, quite : Bool)
 
-		check_paras(database_index, files_dir)
-
 		unless quite
-			puts "[i] Starting recovery process"
-			puts "[i] Opening database:\t #{database_index}"
-			puts "[i] Files directory path:\t #{files_dir}"
+			puts "[*] Using database: #{database_index}"
+			puts "[*] Files directory path: #{files_dir}"
 		end
-
-		if output_dir.empty?
-			puts "[!] No output directory given using default" unless quite
-			output_dir = "__out" 
-		end
-
-		puts "[i] Output directory:\t #{output_dir}" unless quite
-
-		begin 
-			files_structure = getFilesFromDB(database_index)		
+    
+    checkDB(database_index)
+		
+    begin 
+			files_structure = getFilesFromDB(database_index)
+      puts "[+] Found #{files_structure.size} database entries".colorize.green unless quite
 		rescue e
-			raise e
-		end 
-		puts "[i] Found #{files_structure.size} database entries" unless quite
+			puts "[-] #{e}".colorize.red
+      puts "[!] Try to use the --restore option".colorize.yellow
+      exit(1)
+		end
 
 		root_node = buildTree(files_structure, files_dir, output_dir)
 		root_node.create_dirs("", files_dir)
@@ -186,29 +164,32 @@ module Recoverer
 	# Tries to restore the given database
 	def restore(db_path : String , output_file : String, quite : Bool)
 
-		puts "Trying to restore the database file located at: #{db_path}" unless quite
+		puts "[*] Trying to restore the database file located at: #{db_path}" unless quite
 
 		# If no output file given a default one will be selcted
 		if output_file.empty?
-			puts "No output parameter given, using __restored.db" unless quite
+			puts "[-] No output parameter given, using __restored.db" unless quite
 			output_file = "__restored.db"
 		else 
-			puts "Output file: #{output_file}" unless quite
+			puts "[*] Output file: #{output_file}" unless quite
 		end
 
 		if ! File.exists?(db_path)
-			raise Exception.new("#{db_path} does not exist")
+      puts "[-] #{db_path} does not exist".colorize.red
+      exit(1)
 		end
 
 		if File.exists?(output_file)
-			raise Exception.new("#{output_file} already exists")
+      puts "[-] #{output_file} already exists".colorize.red
+      exit(1)
 		end
 
 		begin 			
 			# IMMENSLY HIGH DANGER FOR INJECTIONS, ONLY INTENDED FOR PRIVATE USE
 			`sqlite3 #{db_path} ".recover"  | sqlite3 #{output_file} 2>/dev/zero`
 		rescue e
-			raise Exception.new("There was a problem recovering the database.")
+      puts "[-] There was a problem recovering the database:#{e}".colorize.red
+      exit(1)
 		end
 	end
 end
